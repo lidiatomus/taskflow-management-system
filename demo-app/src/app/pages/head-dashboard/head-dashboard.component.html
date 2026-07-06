@@ -1,0 +1,17 @@
+<main class="dashboard-page">
+  <section class="dashboard-card">
+    <h1>Department Head Dashboard</h1>
+    <p>Welcome, {{ user()?.name }}!</p>
+
+    <div class="actions">
+      <a mat-flat-button routerLink="/people">View People</a>
+      <a mat-flat-button routerLink="/departaments">View Departments</a>
+      <a mat-flat-button routerLink="/tasks">View Tasks</a>
+      <a mat-flat-button routerLink="/ai-assistant">
+        AI Assistant
+      </a>
+    </div>
+
+    <button mat-button (click)="logout()">Logout</button>
+  </section>
+</main>

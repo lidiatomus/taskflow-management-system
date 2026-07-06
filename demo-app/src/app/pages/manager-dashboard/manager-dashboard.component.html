@@ -1,0 +1,34 @@
+<main class="dashboard-page">
+  <section class="dashboard-card">
+    <h1>Team Manager Dashboard</h1>
+    <p>Welcome, {{ user()?.name }}!</p>
+
+    <div class="actions">
+      <a mat-flat-button routerLink="/people">
+        Manage People
+      </a>
+
+      <a mat-flat-button routerLink="/departaments">
+        Manage Departments
+      </a>
+
+      <a mat-flat-button routerLink="/tasks">
+        Manage Tasks
+      </a>
+
+      @if(authService.isTeamManager()) {
+      <a mat-flat-button routerLink="/audit-log">
+        Audit Log
+      </a>
+      }
+      <a mat-flat-button routerLink="/ai-assistant">
+        AI Assistant
+      </a>
+    </div>
+
+    <button mat-button (click)="logout()">
+      Logout
+    </button>
+
+  </section>
+</main>

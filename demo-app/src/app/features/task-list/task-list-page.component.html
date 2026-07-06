@@ -1,0 +1,330 @@
+<mat-toolbar color="primary">
+  <span>Task Manager</span>
+</mat-toolbar>
+
+<main class="content">
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Manage Tasks</h1>
+      <p class="page-subtitle">CRUD, patch, overdue, in progress, and person assignments.</p>
+    </div>
+
+    @if (canCreateTask()) {
+    <button mat-flat-button (click)="openCreateDialog()" aria-label="Add new task" [disabled]="isLoading()">
+      <mat-icon>add</mat-icon>
+      New Task
+    </button>
+    }
+  </header>
+
+  @if (isLoading()) {
+  <p class="loading-status" role="status" aria-live="polite">
+    Loading tasks...
+  </p>
+  }
+
+  @if (hasError()) {
+  <div class="error-alert" role="alert" aria-live="assertive">
+    <mat-icon aria-hidden="true">error_outline</mat-icon>
+    {{ errorMessage() }}
+  </div>
+  }
+
+  <section class="table-section">
+    <div class="filter-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Search by title</mat-label>
+        <input matInput [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select [ngModel]="selectedStatus()" (ngModelChange)="selectedStatus.set($event)">
+          <mat-option [value]="null">All</mat-option>
+          <mat-option value="TODO">TODO</mat-option>
+          <mat-option value="IN_PROGRESS">IN_PROGRESS</mat-option>
+          <mat-option value="DONE">DONE</mat-option>
+          <mat-option value="PENDING_APPROVAL">PENDING_APPROVAL</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Sort by deadline</mat-label>
+        <mat-select [ngModel]="sortDirection()" (ngModelChange)="sortDirection.set($event)">
+          <mat-option value="asc">Ascending</mat-option>
+          <mat-option value="desc">Descending</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+    <h2>All Tasks</h2>
+
+    <table mat-table [dataSource]="visibleTasks()" aria-label="All tasks table">
+      <ng-container matColumnDef="title">
+        <th mat-header-cell *matHeaderCellDef>Title</th>
+        <td mat-cell *matCellDef="let task">{{ task.title }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Description</th>
+        <td mat-cell *matCellDef="let task">{{ task.description }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let task">{{ task.status }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="deadline">
+        <th mat-header-cell *matHeaderCellDef>Deadline</th>
+        <td mat-cell *matCellDef="let task">{{ task.deadline }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="timeRemaining">
+        <th mat-header-cell *matHeaderCellDef>Time Remaining</th>
+        <td mat-cell *matCellDef="let task">{{ task.timeRemaining || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="completionStatus">
+        <th mat-header-cell *matHeaderCellDef>Completion</th>
+        <td mat-cell *matCellDef="let task">{{ task.completionStatus || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="assignedPersons">
+        <th mat-header-cell *matHeaderCellDef>Assigned Persons</th>
+        <td mat-cell *matCellDef="let task">{{ formatAssignedPersons(task) }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef>Actions</th>
+        <td mat-cell *matCellDef="let task">
+          @if (hasAnyAction(task)) {
+          @if (showEditButton(task)) {
+          <button mat-icon-button (click)="openEditDialog(task)" [disabled]="isLoading()"
+            [attr.aria-label]="'Edit ' + task.title">
+            <mat-icon>edit</mat-icon>
+          </button>
+          }
+
+          @if (showPatchButton(task)) {
+          <button mat-icon-button (click)="openPatchDialog(task)" [disabled]="isLoading()"
+            [attr.aria-label]="'Patch ' + task.title">
+            <mat-icon>tune</mat-icon>
+          </button>
+          }
+
+          @if (canRequestApproval(task)) {
+          <button mat-icon-button (click)="requestApproval(task)" [disabled]="isLoading()"
+            [attr.aria-label]="'Request approval for ' + task.title">
+
+            <mat-icon>hourglass_empty</mat-icon>
+          </button>
+          }
+
+          @if (canApproveOrReject(task)) {
+          <button mat-icon-button (click)="approveTask(task)" [disabled]="isLoading()"
+            [attr.aria-label]="'Approve ' + task.title">
+
+            <mat-icon>check_circle</mat-icon>
+          </button>
+
+          <button mat-icon-button (click)="rejectTask(task)" [disabled]="isLoading()"
+            [attr.aria-label]="'Reject ' + task.title">
+
+            <mat-icon>cancel</mat-icon>
+          </button>
+          }
+
+          @if (canDeleteTask()) {
+          <button mat-icon-button (click)="openDeleteDialog(task)" class="delete-btn" [disabled]="isLoading()"
+            [attr.aria-label]="'Delete ' + task.title">
+            <mat-icon>delete</mat-icon>
+          </button>
+          }
+          } @else {
+          <span>-</span>
+          }
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+
+      <tr class="mat-mdc-row" *matNoDataRow>
+        <td [attr.colspan]="displayedColumns.length" class="no-data-cell">
+          No tasks found.
+        </td>
+      </tr>
+    </table>
+  </section>
+
+  <section class="table-section">
+    <h2>Overdue Tasks</h2>
+
+    <table mat-table [dataSource]="visibleOverdueTasks()" aria-label="Overdue tasks table">
+      <ng-container matColumnDef="title">
+        <th mat-header-cell *matHeaderCellDef>Title</th>
+        <td mat-cell *matCellDef="let task">{{ task.title }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Description</th>
+        <td mat-cell *matCellDef="let task">{{ task.description }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let task">{{ task.status }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="deadline">
+        <th mat-header-cell *matHeaderCellDef>Deadline</th>
+        <td mat-cell *matCellDef="let task">{{ task.deadline }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="timeRemaining">
+        <th mat-header-cell *matHeaderCellDef>Time Remaining</th>
+        <td mat-cell *matCellDef="let task">{{ task.timeRemaining || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="completionStatus">
+        <th mat-header-cell *matHeaderCellDef>Completion</th>
+        <td mat-cell *matCellDef="let task">{{ task.completionStatus || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="assignedPersons">
+        <th mat-header-cell *matHeaderCellDef>Assigned Persons</th>
+        <td mat-cell *matCellDef="let task">{{ formatAssignedPersons(task) }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="taskInfoColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: taskInfoColumns"></tr>
+
+      <tr class="mat-mdc-row" *matNoDataRow>
+        <td [attr.colspan]="taskInfoColumns.length" class="no-data-cell">
+          No overdue tasks.
+        </td>
+      </tr>
+    </table>
+  </section>
+
+  <section class="table-section">
+    <h2>In Progress Tasks</h2>
+
+    <table mat-table [dataSource]="visibleInProgressTasks()" aria-label="In progress tasks table">
+      <ng-container matColumnDef="title">
+        <th mat-header-cell *matHeaderCellDef>Title</th>
+        <td mat-cell *matCellDef="let task">{{ task.title }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Description</th>
+        <td mat-cell *matCellDef="let task">{{ task.description }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let task">{{ task.status }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="deadline">
+        <th mat-header-cell *matHeaderCellDef>Deadline</th>
+        <td mat-cell *matCellDef="let task">{{ task.deadline }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="timeRemaining">
+        <th mat-header-cell *matHeaderCellDef>Time Remaining</th>
+        <td mat-cell *matCellDef="let task">{{ task.timeRemaining || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="completionStatus">
+        <th mat-header-cell *matHeaderCellDef>Completion</th>
+        <td mat-cell *matCellDef="let task">{{ task.completionStatus || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="assignedPersons">
+        <th mat-header-cell *matHeaderCellDef>Assigned Persons</th>
+        <td mat-cell *matCellDef="let task">{{ formatAssignedPersons(task) }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="taskInfoColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: taskInfoColumns"></tr>
+
+      <tr class="mat-mdc-row" *matNoDataRow>
+        <td [attr.colspan]="taskInfoColumns.length" class="no-data-cell">
+          No in-progress tasks.
+        </td>
+      </tr>
+    </table>
+  </section>
+
+  <section class="table-section">
+    <h2>Tasks by Person</h2>
+
+    <div class="filter-row">
+      <mat-form-field appearance="outline">
+        <mat-label>Select person</mat-label>
+        <mat-select [ngModel]="selectedPersonId()" (ngModelChange)="selectedPersonId.set($event)">
+          @for (person of availablePersons(); track person.id) {
+          <mat-option [value]="person.id">
+            {{ person.name }}
+          </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-flat-button (click)="loadSelectedPersonTasks()" [disabled]="!selectedPersonId()">
+        Show Tasks
+      </button>
+
+      <button mat-button (click)="clearSelectedPersonTasks()">
+        Clear
+      </button>
+    </div>
+
+    <table mat-table [dataSource]="visibleTasksBySelectedPerson()" aria-label="Tasks by selected person">
+      <ng-container matColumnDef="title">
+        <th mat-header-cell *matHeaderCellDef>Title</th>
+        <td mat-cell *matCellDef="let task">{{ task.title }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Description</th>
+        <td mat-cell *matCellDef="let task">{{ task.description }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let task">{{ task.status }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="deadline">
+        <th mat-header-cell *matHeaderCellDef>Deadline</th>
+        <td mat-cell *matCellDef="let task">{{ task.deadline }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="timeRemaining">
+        <th mat-header-cell *matHeaderCellDef>Time Remaining</th>
+        <td mat-cell *matCellDef="let task">{{ task.timeRemaining || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="completionStatus">
+        <th mat-header-cell *matHeaderCellDef>Completion</th>
+        <td mat-cell *matCellDef="let task">{{ task.completionStatus || '-' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="assignedPersons">
+        <th mat-header-cell *matHeaderCellDef>Assigned Persons</th>
+        <td mat-cell *matCellDef="let task">{{ formatAssignedPersons(task) }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="taskInfoColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: taskInfoColumns"></tr>
+
+      <tr class="mat-mdc-row" *matNoDataRow>
+        <td [attr.colspan]="taskInfoColumns.length" class="no-data-cell">
+          No tasks for selected person.
+        </td>
+      </tr>
+    </table>
+  </section>
+</main>

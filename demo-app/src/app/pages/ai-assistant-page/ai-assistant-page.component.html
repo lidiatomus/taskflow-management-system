@@ -1,0 +1,53 @@
+<main class="ai-page">
+  <mat-card class="ai-card">
+
+    <div class="ai-header">
+      <h1>AI Assistant</h1>
+      <p>
+        Generate a work plan or receive an assignee recommendation based on previous task history.
+      </p>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Task description</mat-label>
+
+      <textarea
+        matInput
+        rows="6"
+        placeholder="Example: Review and test the telemetry code"
+        [value]="taskText()"
+        (input)="taskText.set($any($event.target).value)">
+      </textarea>
+    </mat-form-field>
+
+    <div class="button-group">
+      <button
+        mat-flat-button
+        (click)="generatePlan()"
+        [disabled]="isLoading()">
+
+        {{ isLoading() ? 'Generating...' : 'Generate work plan' }}
+
+      </button>
+
+      @if(canSuggestAssignee()) {
+        <button
+          mat-stroked-button
+          (click)="suggestAssignee()"
+          [disabled]="isLoading()">
+
+          Suggest assignee
+
+        </button>
+      }
+    </div>
+
+    @if(answer()) {
+      <section class="answer-box">
+        <h2>Suggestion</h2>
+        <pre>{{ answer() }}</pre>
+      </section>
+    }
+
+  </mat-card>
+</main>

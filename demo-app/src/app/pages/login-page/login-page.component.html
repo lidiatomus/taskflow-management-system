@@ -1,0 +1,95 @@
+<main class="login-page">
+
+  <mat-card class="login-card">
+
+    <h1>Login</h1>
+
+    @if(!show2FA()) {
+
+    <p>
+      Sign in with your email and password
+    </p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+
+      <mat-form-field appearance="outline" class="full-width">
+
+        <mat-label>Email</mat-label>
+
+        <input matInput type="email" formControlName="email">
+
+      </mat-form-field>
+
+
+      <mat-form-field appearance="outline" class="full-width">
+
+        <mat-label>Password</mat-label>
+
+        <input matInput type="password" formControlName="password">
+
+      </mat-form-field>
+
+
+      <button mat-flat-button type="submit" class="full-width" [disabled]="isLoading() || lockRemaining() > 0">
+
+        @if (lockRemaining() > 0) {
+        Locked: {{ formattedTime }}
+        } @else {
+        {{ isLoading() ? 'Logging in...' : 'Login' }}
+        }
+
+      </button>
+
+    </form>
+
+    }
+
+    @else {
+
+    <h2>
+      Two Factor Authentication
+    </h2>
+
+    <p>
+      Enter the code received by email
+    </p>
+
+    <form [formGroup]="codeForm" (ngSubmit)="verify2FA()">
+
+      <mat-form-field appearance="outline" class="full-width">
+
+        <mat-label>2FA Code</mat-label>
+
+        <input matInput formControlName="code">
+
+      </mat-form-field>
+
+      <button mat-flat-button class="full-width" type="submit">
+
+        Verify
+
+      </button>
+
+    </form>
+
+    }
+
+    @if(hasError()) {
+
+    <div class="error-alert">
+
+      {{errorMessage()}}
+
+    </div>
+
+    }
+
+    <a routerLink="/forgot-password">
+
+      Forgot password?
+
+    </a>
+
+  </mat-card>
+
+</main>

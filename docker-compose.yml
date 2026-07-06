@@ -1,0 +1,26 @@
+services:
+
+  backend:
+    build: ./demo_backend
+    container_name: sd_backend
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/sd_assignment
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: lidia
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build: ./demo-app
+    container_name: sd_frontend
+
+    depends_on:
+      - backend
+
+    ports:
+      - "4200:80"
